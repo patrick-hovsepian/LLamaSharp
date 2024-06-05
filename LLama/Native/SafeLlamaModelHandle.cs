@@ -461,8 +461,8 @@ namespace LLama.Native
         public LLamaToken[] Tokenize(string text, bool add_bos, bool special, Encoding encoding)
         {
             // Early exit if there's no work to do
-            if (text == "" && !add_bos)
-                return Array.Empty<LLamaToken>();
+            if (text == string.Empty && !add_bos)
+                return [];
 
             // Convert string to bytes, adding one extra byte to the end (null terminator)
             var bytesCount = encoding.GetByteCount(text);
@@ -484,7 +484,7 @@ namespace LLama.Native
                         var tokens = new LLamaToken[count];
                         fixed (LLamaToken* tokensPtr = tokens)
                         {
-                            NativeApi.llama_tokenize(this, bytesPtr, bytesCount, tokensPtr, count, add_bos, special);
+                            _ = NativeApi.llama_tokenize(this, bytesPtr, bytesCount, tokensPtr, count, add_bos, special);
                             return tokens;
                         }
                     }
