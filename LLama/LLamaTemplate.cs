@@ -294,7 +294,13 @@ public sealed class LLamaTemplate
         var dataLength = Apply(Array.Empty<byte>());
 
         // convert the resulting buffer to a string
+        // neeed ToArray call to support netstandard
+        #if NET6_0_OR_GREATER
         return Encoding.GetString(_result.AsSpan(0, dataLength));
+        #endif
+
+        // need the ToArray call for netstandard
+        return Encoding.GetString(_result.AsSpan(0, dataLength).ToArray());
     }
 
     /// <summary>

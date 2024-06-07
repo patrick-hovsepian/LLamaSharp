@@ -534,14 +534,14 @@ namespace LLama.Native
 
         #region metadata
         /// <summary>
-        /// Get the metadata key for the given index
+        /// Get the metadata value for the given key
         /// </summary>
-        /// <param name="index">The index to get</param>
-        /// <returns>The key, null if there is no such key or if the buffer was too small</returns>
-        public Memory<byte>? MetadataKeyByKey(string key)
+        /// <param name="key">The key to fetch</param>
+        /// <returns>The value, null if there is no such key</returns>
+        public Memory<byte>? MetadataValueByKey(string key)
         {
             // Check if the key exists, without getting any bytes of data
-            var keyLength = llama_model_meta_val_str(this, key, Array.Empty<byte>());
+            var keyLength = llama_model_meta_val_str(this, key, []);
             if (keyLength < 0)
                 return null;
 
@@ -550,7 +550,7 @@ namespace LLama.Native
             keyLength = llama_model_meta_val_str(this, key, buffer);
             Debug.Assert(keyLength >= 0);
 
-            return buffer.AsMemory().Slice(0, keyLength);
+            return buffer.AsMemory().Slice(0,keyLength);
         }
 
         /// <summary>
@@ -627,28 +627,30 @@ namespace LLama.Native
             internal ModelTokens(SafeLlamaModelHandle model)
             {
                 _model = model;
-                _eot = LLamaTokenToString(EOT);
+                _eot = LLamaTokenToString(EOT, true);
             }
 
             // expose as util?
-            private string LLamaTokenToString(LLamaToken? token)
+            private string? LLamaTokenToString(LLamaToken? token, bool isSpecialToken)
             {
                 const int buffSize = 32;
                 Span<byte> buff = stackalloc byte[buffSize];
-                var tokenLength = _model.TokenToSpan(token ?? -1, buff, special: true);
-                if (tokenLength > 0
-                    && tokenLength <= buffSize)
+                var tokenLength = _model.TokenToSpan(token ?? LLamaToken.INVALID_TOKEN, buff, special: isSpecialToken);
+                
+                if (tokenLength <= 0)
                 {
-                    var slice = buff.Slice(0, (int)tokenLength);
-                    return Encoding.UTF8.GetStringFromSpan(slice);
+                    return null;
                 }
-                else
+                
+                // if the original buffer wasn't large enough, create a new one
+                if (tokenLength > buffSize)
                 {
-                    // log for insight
-                    Trace.TraceError($"End token is missing or larger than 32 bytes for {_model}");
+                    buff = stackalloc byte[(int)tokenLength];
+                    _ = _model.TokenToSpan(token ?? LLamaToken.INVALID_TOKEN, buff, special: isSpecialToken);
                 }
 
-                return null!;
+                var slice = buff.Slice(0, (int)tokenLength);
+                return Encoding.UTF8.GetStringFromSpan(slice);
             }
 
             private static LLamaToken? Normalize(LLamaToken token)

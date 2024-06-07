@@ -7,13 +7,13 @@ public class LLama3ChatSession
 {
     public static async Task Run()
     {
-        string modelPath = UserSettings.GetModelPath();
-
+        var modelPath = UserSettings.GetModelPath();
         var parameters = new ModelParams(modelPath)
         {
             Seed = 1337,
             GpuLayerCount = 10
         };
+        
         using var model = LLamaWeights.LoadFromFile(parameters);
         using var context = model.CreateContext(parameters);
         var executor = new InteractiveExecutor(context);

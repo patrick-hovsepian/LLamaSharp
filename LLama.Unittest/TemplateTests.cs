@@ -290,7 +290,7 @@ public sealed class TemplateTests
 
         var metadata = _model.NativeHandle.ReadMetadata();
 
-        var template = _model.NativeHandle.MetadataKeyByKey("general.name");
+        var template = _model.NativeHandle.MetadataValueByKey("general.name");
         var templ = Encoding.UTF8.GetStringFromSpan(template!.Value.Span);
 
         Assert.Throws<ArgumentOutOfRangeException>(() => templater.RemoveAt(0));

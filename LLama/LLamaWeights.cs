@@ -75,8 +75,9 @@ namespace LLama
 
             foreach (var adapter in @params.LoraAdapters)
             {
-                if (string.IsNullOrEmpty(adapter.Path)
-                    || adapter.Scale <= 0)
+                if (string.IsNullOrEmpty(adapter.Path))
+                    continue;
+                if (adapter.Scale <= 0)
                     continue;
 
                 weights.ApplyLoraFromFile(adapter.Path, adapter.Scale, @params.LoraBase);

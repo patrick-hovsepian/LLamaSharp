@@ -1,15 +1,8 @@
 using LLama.Abstractions;
 using LLama.Web.Common;
 using System.Collections.Concurrent;
-using System.Text;
 
 namespace LLama.Web.Models;
-
-public readonly record struct LlamaModelMetadata
-{
-    // tokenizer.chat_template
-    public string ChatTemplate { get; init; }
-}
 
 /// <summary>
 /// Wrapper class for LLamaSharp LLamaWeights
@@ -21,8 +14,6 @@ public class LLamaModel : IDisposable
     private readonly ModelOptions _config;
     private readonly LLamaWeights _weights;
     private readonly ConcurrentDictionary<string, LLamaContext> _contexts;
-
-    public LlamaModelMetadata ModelMetadata { get; init; }
 
     /// <summary>
     /// Use the Create method to instantiate this class.
@@ -36,11 +27,6 @@ public class LLamaModel : IDisposable
         _llamaLogger = llamaLogger;
         _weights = weights;
         _contexts = new ConcurrentDictionary<string, LLamaContext>();
-
-        var template = _weights.NativeHandle.MetadataKeyByKey("tokenizer.chat_template");
-        ModelMetadata = new LlamaModelMetadata{
-            ChatTemplate = Encoding.UTF8.GetString(template.Value.ToArray())
-        };
     }
 
     /// <summary>
