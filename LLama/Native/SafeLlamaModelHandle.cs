@@ -6,7 +6,6 @@ using System.IO;
 using System.Runtime.InteropServices;
 using System.Text;
 using LLama.Exceptions;
-using LLama.Extensions;
 
 namespace LLama.Native
 {
@@ -224,8 +223,32 @@ namespace LLama.Native
         /// <param name="buf"></param>
         /// <param name="buf_size"></param>
         /// <returns>The length of the string on success, or -1 on failure</returns>
-        [DllImport(NativeApi.libraryName, CallingConvention = CallingConvention.Cdecl)]
-        public static extern unsafe int llama_model_meta_val_str(SafeLlamaModelHandle model, byte* key, byte* buf, long buf_size);
+
+        // [DllImport(NativeApi.libraryName, CallingConvention = CallingConvention.Cdecl)]
+        // public static extern unsafe int llama_model_meta_val_str(SafeLlamaModelHandle model, byte* key, byte* buf, long buf_size);
+
+        private static int llama_model_meta_val_str(SafeLlamaModelHandle model, string key, Span<byte> dest)
+        {
+            var bytesCount = Encoding.UTF8.GetByteCount(key);
+            var bytes = ArrayPool<byte>.Shared.Rent(bytesCount);
+
+            unsafe
+            {
+                fixed (char* keyPtr = key)
+                fixed (byte* bytesPtr = bytes)
+                fixed (byte* destPtr = dest)
+                {
+                    // Convert text into bytes
+                    Encoding.UTF8.GetBytes(keyPtr, key.Length, bytesPtr, bytes.Length);
+
+                    return llama_model_meta_val_str_native(model, bytesPtr, destPtr, dest.Length);
+                }
+            }
+
+            [DllImport(NativeApi.libraryName, CallingConvention = CallingConvention.Cdecl, EntryPoint = "llama_model_meta_val_str")]
+            static extern unsafe int llama_model_meta_val_str_native(SafeLlamaModelHandle model, byte* key, byte* buf, long buf_size);
+        }
+
 
         /// <summary>
         /// Get the number of tokens in the model vocabulary
@@ -515,6 +538,26 @@ namespace LLama.Native
         /// </summary>
         /// <param name="index">The index to get</param>
         /// <returns>The key, null if there is no such key or if the buffer was too small</returns>
+        public Memory<byte>? MetadataKeyByKey(string key)
+        {
+            // Check if the key exists, without getting any bytes of data
+            var keyLength = llama_model_meta_val_str(this, key, Array.Empty<byte>());
+            if (keyLength < 0)
+                return null;
+
+            // get a buffer large enough to hold it
+            var buffer = new byte[keyLength + 1];
+            keyLength = llama_model_meta_val_str(this, key, buffer);
+            Debug.Assert(keyLength >= 0);
+
+            return buffer.AsMemory().Slice(0, keyLength);
+        }
+
+        /// <summary>
+        /// Get the metadata key for the given index
+        /// </summary>
+        /// <param name="index">The index to get</param>
+        /// <returns>The key, null if there is no such key or if the buffer was too small</returns>
         public Memory<byte>? MetadataKeyByIndex(int index)
         {
             // Check if the key exists, without getting any bytes of data
@@ -576,13 +619,36 @@ namespace LLama.Native
         /// <summary>
         /// Get tokens for a model
         /// </summary>
-        public class ModelTokens
+        public readonly struct ModelTokens
         {
             private readonly SafeLlamaModelHandle _model;
+            private readonly string? _eot;
 
             internal ModelTokens(SafeLlamaModelHandle model)
             {
                 _model = model;
+                _eot = LLamaTokenToString(EOT);
+            }
+
+            // expose as util?
+            private string LLamaTokenToString(LLamaToken? token)
+            {
+                const int buffSize = 32;
+                Span<byte> buff = stackalloc byte[buffSize];
+                var tokenLength = _model.TokenToSpan(token ?? -1, buff, special: true);
+                if (tokenLength > 0
+                    && tokenLength <= buffSize)
+                {
+                    var slice = buff.Slice(0, (int)tokenLength);
+                    return Encoding.UTF8.GetStringFromSpan(slice);
+                }
+                else
+                {
+                    // log for insight
+                    Trace.TraceError($"End token is missing or larger than 32 bytes for {_model}");
+                }
+
+                return null!;
             }
 
             private static LLamaToken? Normalize(LLamaToken token)
@@ -634,6 +700,11 @@ namespace LLama.Native
             /// Codellama end of infill middle
             /// </summary>
             public LLamaToken? EOT => Normalize(llama_token_eot(_model));
+
+            /// <summary>
+            /// Returns the string representation of this model's end_of_text token
+            /// </summary>
+            public string? EndOfTurnToken => _eot;
 
             /// <summary>
             /// Check if the given token should end generation
