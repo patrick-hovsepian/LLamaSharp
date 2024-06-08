@@ -190,10 +190,18 @@ public sealed class LLamaTemplate
         return this;
     }
     
+    /// <summary>
+    /// Remove all messags from the template and resets internal state to accept/generate new messages
+    /// </summary>
     public void RemoveAllMessages()
     {
         _messages = new TextMessage[4];
         Count = 0;
+
+        _resultLength = 0;
+        _result = [];
+        _nativeChatMessages = new LLamaChatMessage[4];
+
         _dirty = true;
     }
     #endregion
@@ -294,12 +302,11 @@ public sealed class LLamaTemplate
         var dataLength = Apply(Array.Empty<byte>());
 
         // convert the resulting buffer to a string
-        // neeed ToArray call to support netstandard
-        #if NET6_0_OR_GREATER
+#if NET6_0_OR_GREATER
         return Encoding.GetString(_result.AsSpan(0, dataLength));
-        #endif
+#endif
 
-        // need the ToArray call for netstandard
+        // need the ToArray call for netstandard -- avoided in newer runtimes
         return Encoding.GetString(_result.AsSpan(0, dataLength).ToArray());
     }
 
