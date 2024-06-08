@@ -8,7 +8,7 @@ public sealed class TemplateTests
     : IDisposable
 {
     private readonly LLamaWeights _model;
-    
+
     public TemplateTests()
     {
         var @params = new ModelParams(Constants.GenerativeModelPath)
@@ -18,12 +18,12 @@ public sealed class TemplateTests
         };
         _model = LLamaWeights.LoadFromFile(@params);
     }
-    
+
     public void Dispose()
     {
         _model.Dispose();
     }
-    
+
     [Fact]
     public void BasicTemplate()
     {
@@ -300,5 +300,17 @@ public sealed class TemplateTests
 
         Assert.Throws<ArgumentOutOfRangeException>(() => templater.RemoveAt(-1));
         Assert.Throws<ArgumentOutOfRangeException>(() => templater.RemoveAt(2));
+    }
+
+    [Fact]
+    public void EndOTurnToken_ReturnsExpected()
+    {
+        Assert.Null(_model.Tokens.EndOfTurnToken);
+    }
+
+    [Fact]
+    public void EndOSpeechToken_ReturnsExpected()
+    {
+        Assert.Equal("</s>", _model.Tokens.EndOfSpeechToken);
     }
 }

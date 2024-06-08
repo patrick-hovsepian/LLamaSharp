@@ -220,13 +220,8 @@ namespace LLama.Native
         /// </summary>
         /// <param name="model"></param>
         /// <param name="key"></param>
-        /// <param name="buf"></param>
-        /// <param name="buf_size"></param>
+        /// <param name="dest"></param>
         /// <returns>The length of the string on success, or -1 on failure</returns>
-
-        // [DllImport(NativeApi.libraryName, CallingConvention = CallingConvention.Cdecl)]
-        // public static extern unsafe int llama_model_meta_val_str(SafeLlamaModelHandle model, byte* key, byte* buf, long buf_size);
-
         private static int llama_model_meta_val_str(SafeLlamaModelHandle model, string key, Span<byte> dest)
         {
             var bytesCount = Encoding.UTF8.GetByteCount(key);
@@ -623,14 +618,15 @@ namespace LLama.Native
         {
             private readonly SafeLlamaModelHandle _model;
             private readonly string? _eot;
+            private readonly string? _eos;
 
             internal ModelTokens(SafeLlamaModelHandle model)
             {
                 _model = model;
                 _eot = LLamaTokenToString(EOT, true);
+                _eos = LLamaTokenToString(EOS, true);
             }
 
-            // expose as util?
             private string? LLamaTokenToString(LLamaToken? token, bool isSpecialToken)
             {
                 const int buffSize = 32;
@@ -667,6 +663,11 @@ namespace LLama.Native
             /// Get the End of Sentence token for this model
             /// </summary>
             public LLamaToken? EOS => Normalize(llama_token_eos(_model));
+            
+            /// <summary>
+            /// The textual representation of the end of speech special token for this model
+            /// </summary>
+            public string? EndOfSpeechToken => _eos;
 
             /// <summary>
             /// Get the newline token for this model

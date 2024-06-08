@@ -3,6 +3,11 @@ using LLama.Transformers;
 
 namespace LLama.Examples.Examples;
 
+/// <summary>
+/// This sample shows a simple chatbot
+/// It's configured to use the default prompt template as provided by llama.cpp and supports
+/// models such as llama3, llama2, phi3, qwen1.5, etc.
+/// </summary>
 public class LLama3ChatSession
 {
     public static async Task Run()
@@ -13,7 +18,7 @@ public class LLama3ChatSession
             Seed = 1337,
             GpuLayerCount = 10
         };
-        
+
         using var model = LLamaWeights.LoadFromFile(parameters);
         using var context = model.CreateContext(parameters);
         var executor = new InteractiveExecutor(context);
@@ -25,7 +30,7 @@ public class LLama3ChatSession
 
         // add the default templator. If llama.cpp doesn't support the template by default, 
         // you'll need to write your own transformer to format the prompt correctly
-        session.WithHistoryTransform(new PromptTemplateTransformer(model, true)); 
+        session.WithHistoryTransform(new PromptTemplateTransformer(model, withAssistant: true)); 
 
         // Add a transformer to eliminate printing the end of turn tokens, llama 3 specifically has an odd LF that gets printed somtimes
         session.WithOutputTransform(new LLamaTransforms.KeywordTextOutputStreamTransform(
