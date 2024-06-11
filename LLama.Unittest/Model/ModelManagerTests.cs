@@ -17,23 +17,38 @@ public class ModelManagerTests
         var dirs = TestableModelManager.ModelDirectories;
         Assert.Single(dirs);
 
-        Assert.Equal(Constants.ModelDirectory, dirs.First());
+        var expected = dirs.First()!.Contains(Constants.ModelDirectory);
+        Assert.True(expected);
+    }
+
+    [Fact]
+    public void ModelDirectories_AddDirectory_DoesntDuplicate()
+    {
+        for (var i = 0; i < 10; i++)
+        {
+            TestableModelManager.AddDirectory(Constants.ModelDirectory);
+
+            var dirs = TestableModelManager.ModelDirectories;
+            Assert.Single(dirs);
+            var expected = dirs.First()!.Contains(Constants.ModelDirectory);
+            Assert.True(expected);
+        }
     }
 
     [Fact]
     public void ModelFiles_IsCorrect()
     {
-        var files = TestableModelManager.ModelFiles;
+        var files = TestableModelManager.ModelFileList;
         Assert.Equal(4, files.Count());
     }
 
     [Fact]
     public async Task LoadModel_LoadsAndCaches()
     {
-        var modelToLoad = TestableModelManager.ModelFiles
-            .First(f => f.Contains("llama-2-7b"));
+        var modelToLoad = TestableModelManager.ModelFileList
+            .First(f => f.FileName.Contains("llama-2-7b"));
 
-        var model = await TestableModelManager.Load(modelToLoad, (m) =>
+        var model = await TestableModelManager.LoadModel(modelToLoad.FilePath, (m) =>
         {
             m.GpuLayerCount = 1;
             m.Seed = 12;
@@ -45,6 +60,6 @@ public class ModelManagerTests
         Assert.True(isLoaded);
 
         // unload
-        Assert.True(TestableModelManager.Unload(model.ModelName));
+        Assert.True(TestableModelManager.UnloadModel(model.ModelName));
     }
 }
