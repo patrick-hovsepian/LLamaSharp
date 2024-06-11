@@ -1,4 +1,5 @@
-﻿using LLama.Model;
+﻿using LLama.Common;
+using LLama.Model;
 
 namespace LLama.Unittest;
 
@@ -61,5 +62,9 @@ public class ModelManagerTests
 
         // unload
         Assert.True(TestableModelManager.UnloadModel(model.ModelName));
+
+        Assert.Throws<ObjectDisposedException>(() => {
+            _ = model.CreateContext(new ModelParams(modelToLoad.FilePath));
+        });
     }
 }
