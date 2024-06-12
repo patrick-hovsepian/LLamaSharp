@@ -3,7 +3,6 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
 using System.Linq;
-using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 using LLama.Common;
@@ -130,7 +129,7 @@ public class ModelCache : IModelCache
     /// <summary>
     /// Support model type files
     /// </summary>
-    public static string[] ExpectedModelFileTypes = [
+    public static readonly string[] ExpectedModelFileTypes = [
         ".gguf"
     ];
 
@@ -242,7 +241,17 @@ public class ModelCache : IModelCache
     /// <inheritdoc />
     public bool TryGetLoadedModel(string modelId, out LLamaWeights model)
     {
-        return _loadedModelCache.TryGetValue(modelId, out model!);
+        var isCached = _loadedModelCache.TryGetValue(modelId, out model!);
+
+        // Externall disposed, act like it's not in here
+        if (isCached && model.NativeHandle.IsClosed)
+        {
+            _ = _loadedModelCache.Remove(modelId);
+            isCached = false;
+            model = null!;
+        }
+
+        return isCached;
     }
 
     /// <inheritdoc />
@@ -251,6 +260,14 @@ public class ModelCache : IModelCache
         string modelId = "",
         CancellationToken cancellationToken = default)
     {
+        // is the model already loaded? alias could be different but it's up to the caller to be consistent
+        if (!string.IsNullOrEmpty(modelId)
+            && TryGetLoadedModel(modelId, out var loadedModel))
+        {
+            Trace.TraceWarning($"Model {modelId} already loaded");
+            return loadedModel;
+        }
+
         // Configure model params
         var modelParams = new ModelParams(modelPath);
         modelConfigurator?.Invoke(modelParams);
@@ -260,11 +277,20 @@ public class ModelCache : IModelCache
         if (string.IsNullOrWhiteSpace(modelId))
         {
             modelId = model.ModelName;
+            
+            // Check if cached again with alias
+            // TODO: Consider the case where the alias is different but the underlying model file is the same
+            if (TryGetLoadedModel(modelId, out loadedModel))
+            {
+                model.Dispose();
+                return loadedModel;
+            }
         }
         _loadedModelCache.Add(modelId, model);
         return model;
     }
-    
+
+    /// <inheritdoc />
     public bool UnloadModel(string modelId)
     {
         if (TryGetLoadedModel(modelId, out var model))

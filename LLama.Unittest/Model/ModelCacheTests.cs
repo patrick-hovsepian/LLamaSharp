@@ -74,7 +74,7 @@ public class ModelManagerTests
         Assert.Empty(TestableModelManager.ModelDirectories);
         Assert.Empty(TestableModelManager.ModelFileList);
     }
-    
+
     [Fact]
     public void ModelFiles_IsCorrect()
     {
@@ -118,8 +118,51 @@ public class ModelManagerTests
         // unload
         Assert.True(TestableModelManager.UnloadModel(model.ModelName));
 
-        Assert.Throws<ObjectDisposedException>(() => {
+        Assert.Throws<ObjectDisposedException>(() =>
+        {
             _ = model.CreateContext(new ModelParams(modelToLoad.FilePath));
         });
+    }
+
+    [Fact]
+    public async void LoadModel_AlreadyLoaded_ReturnsFromCache()
+    {
+        var modelToLoad = TestableModelManager.ModelFileList
+            .First(f => f.FileName.Contains("llama-2-7b"));
+
+        for (var i = 0; i < 5; i++)
+        {
+            var model = await TestableModelManager.LoadModel(modelToLoad.FilePath);
+            Assert.NotNull(model);
+            Assert.Equal("LLaMA v2", model.ModelName);
+            Assert.Single(TestableModelManager.GetLoadedModels());
+            var isLoaded = TestableModelManager.TryGetLoadedModel(model.ModelName, out var cachedModel);
+            Assert.True(isLoaded);
+            Assert.NotNull(cachedModel);
+            Assert.Equal("LLaMA v2", cachedModel.ModelName);
+        }
+    }
+
+    [Fact]
+    public async void TryGetLoadedModel_AlreadyDisposed_ReturnsFalse()
+    {
+        var modelToLoad = TestableModelManager.ModelFileList
+            .First(f => f.FileName.Contains("llama-2-7b"));
+
+        using (var model = await TestableModelManager.LoadModel(modelToLoad.FilePath))
+        {
+            Assert.NotNull(model);
+            Assert.Equal("LLaMA v2", model.ModelName);
+            Assert.Single(TestableModelManager.GetLoadedModels());
+            var isLoaded = TestableModelManager.TryGetLoadedModel(model.ModelName, out var cachedModel);
+            Assert.True(isLoaded);
+            Assert.NotNull(cachedModel);
+            Assert.Equal("LLaMA v2", cachedModel.ModelName);
+        } // end scope, dispose model
+
+        // Model is now disposed
+        var isDispoedLoaded = TestableModelManager.TryGetLoadedModel("LLaMA v2", out var disposedModel);
+        Assert.False(isDispoedLoaded);
+        Assert.Null(disposedModel);
     }
 }
