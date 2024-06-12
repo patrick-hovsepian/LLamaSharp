@@ -5,7 +5,7 @@ namespace LLama.Unittest;
 
 public class ModelManagerTests
 {
-    private readonly ModelManager TestableModelManager;
+    private readonly ModelCache TestableModelManager;
 
     public ModelManagerTests()
     {

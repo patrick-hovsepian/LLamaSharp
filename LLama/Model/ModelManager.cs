@@ -34,7 +34,7 @@ public class ModelFileMetadata
 /// <summary>
 /// A class that helps organize and load local models
 /// </summary>
-public interface IModelManager
+public interface IModelCache
 {
     // Model Directories
     /// <summary>
@@ -125,7 +125,7 @@ public interface IModelManager
 }
 
 /// <inheritdoc />
-public class ModelManager : IModelManager
+public class ModelCache : IModelCache
 {
     /// <summary>
     /// Support model type files
@@ -144,7 +144,7 @@ public class ModelManager : IModelManager
     /// Create a new model manager that seeds available models from the given directory list
     /// </summary>
     /// <param name="directories"></param>
-    public ModelManager(string[] directories)
+    public ModelCache(string[] directories)
     {
         GetModelsFromDirectories(directories);
     }
