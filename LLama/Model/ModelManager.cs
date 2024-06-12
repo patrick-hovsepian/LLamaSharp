@@ -159,8 +159,7 @@ internal class ModelManager : IModelManager
     {
         // Configure model params
         var modelParams = new ModelParams(modelPath);
-        modelConfigurator ??= DefaultModelConfigurator;
-        modelConfigurator.Invoke(modelParams);
+        modelConfigurator?.Invoke(modelParams);
 
         // load and cache
         var model = await LLamaWeights.LoadFromFileAsync(modelParams, cancellationToken);
@@ -171,23 +170,7 @@ internal class ModelManager : IModelManager
         _loadedModelCache.Add(modelId, model);
         return model;
     }
-
-    public static void DefaultModelConfigurator(ModelParams modelParams)
-    {
-        // Reasonable defaults
-        modelParams.GpuLayerCount = 12;
-        modelParams.Seed = 1337u;
-        modelParams.ContextSize = 2048;
-        modelParams.Encoding = Encoding.UTF8;
-
-        modelParams.UseMemoryLock = true;
-        modelParams.UseMemorymap = true;
-
-        // auto detect
-        modelParams.Threads = null!;
-        modelParams.BatchThreads = null!;
-    }
-
+    
     public bool UnloadModel(string modelId)
     {
         if (TryGetLoadedModel(modelId, out var model))
