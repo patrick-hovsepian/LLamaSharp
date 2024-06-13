@@ -72,7 +72,7 @@ namespace LLama
         }
 
         /// <summary>
-        /// Create from a "shared" handle
+        /// Create from a "shared" handle. The `SafeLlamaModelHandle` will not be disposed and the model will not be unloaded until <b>all</b> such handles have been disposed.
         /// </summary>
         /// <param name="handle"></param>
         /// <returns></returns>
@@ -128,15 +128,15 @@ namespace LLama
             var loraBase = @params.LoraBase;
             var loraAdapters = @params.LoraAdapters.ToArray();
 
-            // Determine the range to report for model loading. llama.cpp reports 0-1, but we'll remap that into a
-            // slightly smaller range to allow some space for reporting LoRA loading too.
-            var modelLoadProgressRange = 1f;
-            if (loraAdapters.Length > 0)
-                modelLoadProgressRange = 0.9f;
-
             using (@params.ToLlamaModelParams(out var lparams))
             {
 #if !NETSTANDARD2_0
+                // Determine the range to report for model loading. llama.cpp reports 0-1, but we'll remap that into a
+                // slightly smaller range to allow some space for reporting LoRA loading too.
+                var modelLoadProgressRange = 1f;
+                if (loraAdapters.Length > 0)
+                    modelLoadProgressRange = 0.9f;
+
                 // Overwrite the progress callback with one which polls the cancellation token and updates the progress object
                 if (token.CanBeCanceled || progressReporter != null)
                 {
