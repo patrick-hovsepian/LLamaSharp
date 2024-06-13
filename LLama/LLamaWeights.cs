@@ -22,6 +22,7 @@ namespace LLama
         /// <remarks>Be careful how you use this!</remarks>
         public SafeLlamaModelHandle NativeHandle { get; }
 
+        #region Properties
         /// <summary>
         /// The models name as specified in it's metadata
         /// </summary>
@@ -64,13 +65,20 @@ namespace LLama
         /// All metadata keys in this model
         /// </summary>
         public IReadOnlyDictionary<string, string> Metadata { get; set; }
+        #endregion
 
-        private LLamaWeights(SafeLlamaModelHandle weights)
+        private LLamaWeights(SafeLlamaModelHandle handle)
         {
-            NativeHandle = weights;
-            Metadata = weights.ReadMetadata();
+            NativeHandle = handle;
+            Metadata = handle.ReadMetadata();
+
+            // Increment the model reference count while this weight exists.
+            // DangerousAddRef throws if it fails, so there is no need to check "success"
+            var success = false;
+            NativeHandle.DangerousAddRef(ref success);
         }
 
+        #region Load
         /// <summary>
         /// Create from a "shared" handle. The `SafeLlamaModelHandle` will not be disposed and the model will not be unloaded until <b>all</b> such handles have been disposed.
         /// </summary>
@@ -78,14 +86,7 @@ namespace LLama
         /// <returns></returns>
         public static LLamaWeights FromSafeModelHandle(SafeLlamaModelHandle handle)
         {
-            var model = new LLamaWeights(handle);
-
-            // Increment the model reference count while this weight exists.
-            // DangerousAddRef throws if it fails, so there is no need to check "success"
-            var success = false;
-            handle.DangerousAddRef(ref success);
-
-            return model;
+            return new LLamaWeights(handle);
         }
 
         /// <summary>
@@ -110,7 +111,7 @@ namespace LLama
 
             return new LLamaWeights(model);
         }
-
+        
         /// <summary>
         /// Load weights into memory
         /// </summary>
@@ -204,10 +205,12 @@ namespace LLama
                 return model;
             }
         }
+        #endregion
 
         /// <inheritdoc />
         public void Dispose()
         {
+            NativeHandle.DangerousRelease();
             NativeHandle.Dispose();
         }
 

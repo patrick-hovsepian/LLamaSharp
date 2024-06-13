@@ -29,8 +29,10 @@ public class ModelManagerTests
         //cachedModel.Dispose(); // this does effectively nothing
 
         // unload "original"
-        //model.Dispose();
+        model.Dispose(); // need to explicitly dispose the model that the caller (us) owns
         Assert.True(TestableModelManager.UnloadModel(model.ModelName));
+
+        Assert.False(TestableModelManager.UnloadModel(model.ModelName));
 
         Assert.Throws<ObjectDisposedException>(() =>
         {
