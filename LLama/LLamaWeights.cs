@@ -16,6 +16,14 @@ namespace LLama
     public sealed class LLamaWeights
         : IDisposable
     {
+        private bool _disposed = false;
+
+        ///
+        ~LLamaWeights()
+        {
+            Dispose(false);
+        }
+
         /// <summary>
         /// The native handle, which is used in the native APIs
         /// </summary>
@@ -111,7 +119,7 @@ namespace LLama
 
             return new LLamaWeights(model);
         }
-        
+
         /// <summary>
         /// Load weights into memory
         /// </summary>
@@ -210,8 +218,28 @@ namespace LLama
         /// <inheritdoc />
         public void Dispose()
         {
-            NativeHandle.DangerousRelease();
-            NativeHandle.Dispose();
+            Dispose(true);
+            GC.SuppressFinalize(this);
+        }
+
+        /// <summary>
+        /// Unload all models when called explicitly via dispose
+        /// </summary>
+        /// <param name="disposing">Whether or not this call is made explicitly(true) or via GC</param>
+        internal void Dispose(bool disposing)
+        {
+            if (_disposed)
+            {
+                return;
+            }
+
+            if (disposing)
+            {
+                NativeHandle.DangerousRelease();
+                NativeHandle.Dispose();
+            }
+
+            _disposed = true;
         }
 
         /// <summary>
