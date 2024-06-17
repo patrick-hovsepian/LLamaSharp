@@ -90,7 +90,7 @@ public class ModelCache : IModelCache
         if (_loadedModelCache.TryGetValue(modelId, out var cachedModel))
         {
             // Decrement refcount on model
-            cachedModel.Model.Dispose(); // this only disposes the original model..
+            cachedModel.Model.Dispose(); // this only disposes the original model...
             cachedModel.RefCount--;
             if (cachedModel.RefCount == 0)
             {
