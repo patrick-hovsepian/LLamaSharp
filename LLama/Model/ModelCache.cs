@@ -10,6 +10,12 @@ using LLama.Native;
 
 namespace LLama.Model;
 
+internal class CachedModelReference
+{
+    public LLamaWeights Model { get; init; } = null!;
+    public int RefCount { get; set; } = 0;
+}
+
 /// <inheritdoc />
 public class ModelCache : IModelCache
 {

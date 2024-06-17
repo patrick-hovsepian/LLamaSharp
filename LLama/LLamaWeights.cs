@@ -114,10 +114,7 @@ namespace LLama
         /// <returns></returns>
         public LLamaWeights CloneFromHandleWithMetadata()
         {
-            var metadataClone = Metadata
-                .Select(x => x)
-                .ToDictionary(x => x.Key, x => x.Value);
-            return new LLamaWeights(NativeHandle, metadataClone);
+            return new LLamaWeights(NativeHandle, Metadata);
         }
 
         /// <summary>
